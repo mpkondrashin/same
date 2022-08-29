@@ -38,12 +38,11 @@ func NewSameApp() *SameApp {
 	}
 }
 
-func (s *SameApp) Status(format string, v ...interface{}) {
+func (s *SameApp) Status() {
 	now := time.Now()
 	if s.lastStatus.Add(updateStatusInterval).After(now) {
 		return
 	}
-	//fmt.Printf(format, v...)
 	fmt.Printf("\r%d\t\t%d\t\t%d", s.fistPhaseCount, s.secondPhaseCount, s.thirdPhaseCount)
 	s.lastStatus = now
 }
@@ -68,7 +67,7 @@ func (s *SameApp) FirstPhase(root string) map[int64][]string {
 			return nil
 		}
 		s.fistPhaseCount++
-		s.Status("Phase 1: %d\n", s.fistPhaseCount)
+		s.Status()
 		result[info.Size()] = append(result[info.Size()], path)
 		return nil
 	})
@@ -119,7 +118,7 @@ func (s *SameApp) FilterUsingHash(item int, paths []string, calcHash HashFunc) (
 
 func (s *SameApp) SecondPhase(paths []string) (map[string][]string, error) {
 	return s.FilterUsingHash(0, paths, func(path string) (string, error) {
-		s.Status("Phase 2: %d\n", s.secondPhaseCount)
+		s.Status()
 		s.secondPhaseCount++
 		data, err := Preview(path)
 		if err != nil {
@@ -131,7 +130,7 @@ func (s *SameApp) SecondPhase(paths []string) (map[string][]string, error) {
 
 func (s *SameApp) ThirdPhase(paths []string) (map[string][]string, error) {
 	return s.FilterUsingHash(1, paths, func(path string) (string, error) {
-		s.Status("Phase 3: %d\n", s.thirdPhaseCount)
+		s.Status()
 		s.thirdPhaseCount++
 		f, err := os.Open(path)
 		if err != nil {

@@ -16,6 +16,14 @@ Lightning fals search for file duplicates in given folder
    See the License for the specific language governing permissions and
    limitations under the License.
 
+
+Build:
+```code
+    git clone --depth 1 https://github.com/mpkondrashin/same.git
+    cd same
+    go build
+```
+
 Usage:
 ```code
     ./same folder <options>

@@ -29,7 +29,7 @@ Usage:
 ```
 
 Available options:
-```code
+```
   -hash string
     	hash algorithm. Available values: md5, sha1, sha256 (default "md5")
   -log string

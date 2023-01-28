@@ -31,6 +31,8 @@ func main() {
 	flag.StringVar(&hashAlgorithm, "hash", "md5", "hash algorithm. Available values: md5, sha1, sha256")
 	var verbose bool
 	flag.BoolVar(&verbose, "verbose", false, "verbose mode")
+	ignoreList := NewIgnoreList()
+	flag.Var(ignoreList, "ignore", "mask of files and folders to ignore")
 	flag.Parse()
 	log.Println("narg", flag.NArg())
 
@@ -64,7 +66,7 @@ func main() {
 	}
 	fmt.Printf("process %s\n", flag.Args())
 	log.Printf("process %s", flag.Args())
-	app := NewSameApp()
+	app := NewSameApp(ignoreList)
 	sf := NewSameFiles()
 	err := app.Run(flag.Args(), sf)
 	if err != nil {

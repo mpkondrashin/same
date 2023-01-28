@@ -18,11 +18,13 @@ type SameApp struct {
 	secondPhaseCount int
 	thirdPhaseCount  int
 	counters         map[string]int
+	ignoreList       *IgnoreList
 }
 
-func NewSameApp() *SameApp {
+func NewSameApp(ignoreList *IgnoreList) *SameApp {
 	return &SameApp{
-		counters: make(map[string]int),
+		ignoreList: ignoreList,
+		counters:   make(map[string]int),
 	}
 }
 
@@ -43,6 +45,12 @@ func (s *SameApp) FirstPhase(roots []string) map[int64][]string {
 				log.Print(err)
 				return nil
 			}
+
+			if s.ignoreList.Ignore(info.Name()) {
+				//	log.Printf("ignore %s\n", path)
+				return filepath.SkipDir
+			}
+			//log.Printf("Do not ignore: %s", info.Name())
 			if info.IsDir() {
 				return nil
 			}

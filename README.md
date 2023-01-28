@@ -25,7 +25,7 @@ Build:
 
 Usage:
 ```code
-    ./same folder <options>
+    ./same [options] folder [folder...]
 ```
 
 Available options:

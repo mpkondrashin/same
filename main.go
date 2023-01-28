@@ -47,30 +47,32 @@ func (s *SameApp) Status() {
 	s.lastStatus = now
 }
 
-func (s *SameApp) FirstPhase(root string) map[int64][]string {
+func (s *SameApp) FirstPhase(roots []string) map[int64][]string {
 	result := make(map[int64][]string)
-	_ = filepath.Walk(root, func(path string, info fs.FileInfo, err error) error {
-		if err != nil {
-			log.Print(err)
+	for _, root := range roots {
+		_ = filepath.Walk(root, func(path string, info fs.FileInfo, err error) error {
+			if err != nil {
+				log.Print(err)
+				return nil
+			}
+			if info.IsDir() {
+				return nil
+			}
+			if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+				return nil
+			}
+			if info.Size() == 0 {
+				return nil
+			}
+			if filepath.Base(path) == ".DS_Store" {
+				return nil
+			}
+			s.fistPhaseCount++
+			s.Status()
+			result[info.Size()] = append(result[info.Size()], path)
 			return nil
-		}
-		if info.IsDir() {
-			return nil
-		}
-		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
-			return nil
-		}
-		if info.Size() == 0 {
-			return nil
-		}
-		if filepath.Base(path) == ".DS_Store" {
-			return nil
-		}
-		s.fistPhaseCount++
-		s.Status()
-		result[info.Size()] = append(result[info.Size()], path)
-		return nil
-	})
+		})
+	}
 	//fmt.Printf("Phase 1: %d\n", s.fistPhaseCount)
 	s.counters["1. Total files processed"] = s.fistPhaseCount
 	// Remove unique files
@@ -146,7 +148,7 @@ func (s *SameApp) ThirdPhase(paths []string) (map[string][]string, error) {
 	})
 }
 
-func (s *SameApp) Run(root string, sameFiles *SameFiles) error {
+func (s *SameApp) Run(root []string, sameFiles *SameFiles) error {
 	fmt.Printf("Phase #1\tPhase #2\tPhase #3\n")
 	data1 := s.FirstPhase(root)
 	sizes := SortedSizes(data1)
@@ -186,24 +188,27 @@ func (s *SameApp) PrintCounters() {
 }
 
 func main() {
-	fs := flag.NewFlagSet("arguments", flag.ExitOnError)
+	//fs := flag.NewFlagSet("arguments", flag.ExitOnError)
 	var reportFileName string
-	fs.StringVar(&reportFileName, "report", "", "report file path")
+	flag.StringVar(&reportFileName, "report", "", "report file path")
 	var logFileName string
-	fs.StringVar(&logFileName, "log", "", "log file path")
+	flag.StringVar(&logFileName, "log", "", "log file path")
 	var scriptFileName string
-	fs.StringVar(&scriptFileName, "script", "rm.sh", "remove duplicates script file path")
+	flag.StringVar(&scriptFileName, "script", "rm.sh", "remove duplicates script file path")
 	var hashAlgorithm string
-	fs.StringVar(&hashAlgorithm, "hash", "md5", "hash algorithm. Available values: md5, sha1, sha256")
+	flag.StringVar(&hashAlgorithm, "hash", "md5", "hash algorithm. Available values: md5, sha1, sha256")
 	var verbose bool
-	fs.BoolVar(&verbose, "verbose", false, "verbose mode")
-	if len(os.Args) < 2 {
+	flag.BoolVar(&verbose, "verbose", false, "verbose mode")
+	flag.Parse()
+	log.Println("narg", flag.NArg())
+
+	//	log.Println("paths", paths)
+	if flag.NArg() == 0 {
 		log.Print("Missing folder command line parameter")
-		fmt.Println("Usage: same folder")
-		fs.Usage()
+		fmt.Println("Usage: same [options] folder [folder...]")
+		flag.Usage()
 		os.Exit(1)
 	}
-	fs.Parse(os.Args[2:])
 	if logFileName != "" {
 		f, err := os.OpenFile(logFileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
@@ -222,15 +227,14 @@ func main() {
 		hashNew = sha256.New
 	default:
 		log.Printf("Unsupported hash algorithm: %s", hashAlgorithm)
-		fs.Usage()
+		flag.Usage()
 		os.Exit(1)
 	}
-	root := os.Args[1]
-	fmt.Printf("process %s\n", root)
-	log.Printf("process %s", root)
+	fmt.Printf("process %s\n", flag.Args())
+	log.Printf("process %s", flag.Args())
 	app := NewSameApp()
 	sf := NewSameFiles()
-	err := app.Run(root, sf)
+	err := app.Run(flag.Args(), sf)
 	if err != nil {
 		panic(err)
 	}
@@ -255,7 +259,7 @@ func main() {
 		panic(err)
 	}
 	defer sh.Close()
-	sh.WriteString(sf.FixUp().ShellScript())
+	sh.WriteString(sf.Populate().ShellScript())
 	if err != nil {
 		fmt.Print(err)
 		return
@@ -309,19 +313,17 @@ func (s *SameFile) AddPath(path string) {
 }
 
 func (f *SameFile) Report(w io.Writer) {
-	//sb := new(strings.Builder)
 	fmt.Fprintf(w, "[%s] %s\n", f.hash, bytesize.New(float64(f.size)))
 	for i, path := range f.paths {
 		fmt.Fprintf(w, "[%d] %s\n", i+1, path)
 	}
-	//return sb.String()
 }
 
 func (f *SameFile) WastedSpace() int64 {
 	return f.size * int64(len(f.paths)-1)
 }
 
-func (f *SameFile) FixUp(fixUp *FixUp) {
+func (f *SameFile) PopulateFixUp(fixUp *FixUp) {
 	shortest := 0
 	for i, path := range f.paths[1:] {
 		if len(path) < len(f.paths[shortest]) {
@@ -362,10 +364,10 @@ func (s *SameFiles) WastedSpace() int64 {
 	return wasted
 }
 
-func (s *SameFiles) FixUp() *FixUp {
+func (s *SameFiles) Populate() *FixUp {
 	fa := NewFixUp()
 	for _, sameFile := range s.files {
-		sameFile.FixUp(fa)
+		sameFile.PopulateFixUp(fa)
 	}
 	return fa
 }

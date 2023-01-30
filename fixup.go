@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"runtime"
 	"strings"
 )
 
@@ -20,7 +21,11 @@ func (f *FixUp) Add(fileName string) {
 func (f *FixUp) ShellScript() string {
 	sb := new(strings.Builder)
 	for _, f := range f.files {
-		fmt.Fprintf(sb, "rm \"%s\"\n", f)
+		if runtime.GOOS == "windows" {
+			fmt.Fprintf(sb, "del \"%s\"\r\n", f)
+		} else {
+			fmt.Fprintf(sb, "rm \"%s\"\n", f)
+		}
 	}
 	return sb.String()
 }

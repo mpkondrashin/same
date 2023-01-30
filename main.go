@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 	"sort"
 	"time"
 
@@ -20,13 +21,16 @@ const updateStatusInterval = 100 * time.Millisecond
 var HashNew = md5.New
 
 func main() {
-	//fs := flag.NewFlagSet("arguments", flag.ExitOnError)
 	var reportFileName string
 	flag.StringVar(&reportFileName, "report", "", "report file path")
 	var logFileName string
 	flag.StringVar(&logFileName, "log", "", "log file path")
 	var scriptFileName string
-	flag.StringVar(&scriptFileName, "script", "rm.sh", "remove duplicates script file path")
+	defaultScriptName := "rm.sh"
+	if runtime.GOOS == "windows" {
+		defaultScriptName = "rm.cmd"
+	}
+	flag.StringVar(&scriptFileName, "script", defaultScriptName, "remove duplicates script file path")
 	var hashAlgorithm string
 	flag.StringVar(&hashAlgorithm, "hash", "md5", "hash algorithm. Available values: md5, sha1, sha256")
 	var verbose bool
@@ -35,8 +39,6 @@ func main() {
 	flag.Var(ignoreList, "ignore", "mask of files and folders to ignore")
 	flag.Parse()
 	log.Println("narg", flag.NArg())
-
-	//	log.Println("paths", paths)
 	if flag.NArg() == 0 {
 		log.Print("Missing folder command line parameter")
 		fmt.Println("Usage: same [options] folder [folder...]")
@@ -93,7 +95,9 @@ func main() {
 		panic(err)
 	}
 	defer sh.Close()
-	sh.WriteString(sf.Populate().ShellScript())
+	fixUp := NewFixUp()
+	sf.Populate(fixUp)
+	sh.WriteString(fixUp.ShellScript())
 	if err != nil {
 		fmt.Print(err)
 		return

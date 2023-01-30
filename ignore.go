@@ -29,7 +29,6 @@ func (i *IgnoreList) Set(value string) error {
 func (i *IgnoreList) Ignore(name string) bool {
 	for _, mask := range i.masks {
 		matched, err := filepath.Match(mask, name)
-		//log.Printf("filepath.Match(%s, %s)", mask, name)
 		if err != nil {
 			log.Fatalf("\"%s\": %v", mask, err)
 		}

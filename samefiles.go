@@ -28,10 +28,8 @@ func (s *SameFiles) WastedSpace() int64 {
 	return wasted
 }
 
-func (s *SameFiles) Populate() *FixUp {
-	fa := NewFixUp()
+func (s *SameFiles) Populate(fa *FixUp) {
 	for _, sameFile := range s.files {
 		sameFile.PopulateFixUp(fa)
 	}
-	return fa
 }

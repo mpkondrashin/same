@@ -45,12 +45,9 @@ func (s *SameApp) FirstPhase(roots []string) map[int64][]string {
 				log.Print(err)
 				return nil
 			}
-
 			if s.ignoreList.Ignore(info.Name()) {
-				//	log.Printf("ignore %s\n", path)
 				return filepath.SkipDir
 			}
-			//log.Printf("Do not ignore: %s", info.Name())
 			if info.IsDir() {
 				return nil
 			}
@@ -69,7 +66,6 @@ func (s *SameApp) FirstPhase(roots []string) map[int64][]string {
 			return nil
 		})
 	}
-	//fmt.Printf("Phase 1: %d\n", s.fistPhaseCount)
 	s.counters["1. Total files processed"] = s.fistPhaseCount
 	// Remove unique files
 	s.counters["2. Groups of the sames size"] = len(result)
